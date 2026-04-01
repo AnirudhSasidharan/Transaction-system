@@ -115,13 +115,3 @@ Client      API            Redis         Worker         DB
 
 ---
 
-## Status: In Development
-
-- [x] Project scaffold
-- [ ] Core config + database connection
-- [ ] Database models
-- [ ] Schemas
-- [ ] Services
-- [ ] Worker + WebSocket
-- [ ] API routes
-- [ ] Tests + Docker

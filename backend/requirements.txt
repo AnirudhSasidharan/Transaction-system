@@ -3,12 +3,12 @@ fastapi==0.111.0
 uvicorn[standard]==0.29.0      # ASGI server that runs FastAPI
 
 # ── Database ──────────────────────────────────────────────────────────────────
-sqlalchemy==2.0.30             # ORM — lets us write Python instead of raw SQL
+sqlalchemy==2.0.30             # ORM —  write Python instead of raw SQL
 asyncpg==0.29.0                # async PostgreSQL driver
 alembic==1.13.1                # database migrations
 
 # ── Redis ─────────────────────────────────────────────────────────────────────
-redis==5.0.4                   # async Redis client (queue + pub/sub)
+redis==5.0.4                   # async Redis client 
 
 # ── Validation ────────────────────────────────────────────────────────────────
 pydantic==2.7.1                # data validation for API schemas

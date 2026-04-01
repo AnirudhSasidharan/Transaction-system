@@ -22,8 +22,7 @@ ENV/
 *.db
 *.sqlite3
 
-# ── Alembic (generated migration files are committed, but not this) ───────────
-# alembic/versions/  ← keep this commented, we DO want to commit migrations
+
 
 # ── Testing ───────────────────────────────────────────────────────────────────
 .pytest_cache/
