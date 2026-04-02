@@ -37,6 +37,6 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 
-# Single global instance — import this everywhere:
+
 # from app.core.config import settings
 settings = Settings()

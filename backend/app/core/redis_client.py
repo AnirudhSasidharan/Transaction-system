@@ -45,7 +45,7 @@ from app.core.config import settings
 redis_pool = aioredis.ConnectionPool.from_url(
     settings.REDIS_URL,
     max_connections=20,
-    decode_responses=True,  # return strings instead of raw bytes
+    decode_responses=True,  # redis bytes → Python strings automatically 
 )
 
 
