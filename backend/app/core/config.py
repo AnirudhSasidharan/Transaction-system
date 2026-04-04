@@ -18,7 +18,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
 
-    # ── Database ──────────────────────────────────────────────────────────────
+    # ── Database 
     # postgresql+asyncpg:// tells SQLAlchemy to use the async Postgres driver
     DATABASE_URL: str = "postgresql+asyncpg://postgres:password@localhost:5432/transactions_db"
 
