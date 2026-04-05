@@ -43,10 +43,10 @@ from app.core.config import settings
 
 
 # ── Engine ────────────────────────────────────────────────────────────────────
-# echo=True logs every SQL statement to the console — great for debugging
+
 engine = create_async_engine(
     settings.DATABASE_URL,
-    echo=settings.APP_ENV == "development",
+    echo=settings.APP_ENV == "development", # echo=True logs every SQL statement to the console — great for debugging
     pool_size=10,     # keep 10 connections open and ready
     max_overflow=20,  # allow 20 extra connections if the pool is full
 )
@@ -73,7 +73,7 @@ class Base(DeclarativeBase):
 async def get_db():
     async with AsyncSessionLocal() as session:
         try:
-            yield session           # hand the session to the route
+            yield session           # hand the session to the route so later it can resume from commit or rollback
             await session.commit()  # save everything if no error occurred
         except Exception:
             await session.rollback()  # undo everything if an error occurred
