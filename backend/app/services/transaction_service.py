@@ -31,7 +31,7 @@ PAGINATION (limit / offset):
   offset=50 → skip the first 50 (page 2)
 """
 
-from datetime import datetime, timezone
+from datetime import datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -132,7 +132,7 @@ class TransactionService:
             return None
 
         transaction.status = status
-        transaction.processed_at = datetime.now(timezone.utc)
+        transaction.processed_at = datetime.utcnow()
         if failure_reason:
             transaction.failure_reason = failure_reason
 

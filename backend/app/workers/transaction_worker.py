@@ -150,7 +150,7 @@ async def process_transaction(transaction_id: int) -> None:
                 "transaction_id": transaction_id,
                 "status": TransactionStatus.SUCCESS.value,
                 "new_balance": new_balance,
-                "processed_at": datetime.now(timezone.utc).isoformat(),
+                "processed_at": datetime.utcnow().isoformat(),
             })
 
         except InsufficientBalanceError as e:
