@@ -86,8 +86,8 @@ class Transaction(Base):
     status: Mapped[TransactionStatus] = mapped_column(
         SAEnum(TransactionStatus, name="transaction_status"),
         nullable=False,
-        default=TransactionStatus.PENDING,
-        server_default=TransactionStatus.PENDING.value,
+        default=TransactionStatus.PENDING, #hereno .value needed because default is handled by SQLAlchemy, not the database
+        server_default=TransactionStatus.PENDING.value, #.value is needed because server_default expects a string, not an enum
         index=True,
     )
 
@@ -115,7 +115,7 @@ class Transaction(Base):
     # This is the most common query — combining both columns into one index
     # is much faster than two separate single-column indexes
     __table_args__ = (
-        Index("ix_transactions_wallet_created", "wallet_id", "created_at"),
+        Index("ix_transactions_wallet_created", "wallet_id", "created_at"),#creates a new compound index named "ix_transactions_wallet_created" on the wallet_id and created_at columns
     )
 
     def __repr__(self) -> str:
