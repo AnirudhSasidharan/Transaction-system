@@ -1,20 +1,18 @@
-import { useState, useEffect } from 'react'
-import { getTransactionHistory } from '../api'
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { getMyTransactionHistory } from '../api'
+import { useAuth } from '../context/useAuth'
 
 export default function History() {
-  const [userId, setUserId] = useState('user_001')
+  const { user } = useAuth()
   const [transactions, setTransactions] = useState([])
   const [error, setError] = useState('')
   const [offset, setOffset] = useState(0)
   const LIMIT = 10
 
-  useEffect(() => {
-    loadHistory()
-  }, [userId, offset])
-
-  const loadHistory = async () => {
+  async function loadHistory() {
     try {
-      const res = await getTransactionHistory(userId, LIMIT, offset)
+      const res = await getMyTransactionHistory(LIMIT, offset)
       setTransactions(res.data)
       setError('')
     } catch (e) {
@@ -23,33 +21,30 @@ export default function History() {
     }
   }
 
-  const formatDate = (dateStr) => {
-    return new Date(dateStr).toLocaleString()
+  useEffect(() => {
+    if (!user) return
+    loadHistory()
+  }, [user, offset])
+
+  const formatDate = (dateStr) => new Date(dateStr).toLocaleString()
+
+  if (!user) {
+    return (
+      <div>
+        <h1 className="page-title">Transaction history</h1>
+        <div className="card"><div className="empty">Please <Link to="/auth">login</Link> to view history.</div></div>
+      </div>
+    )
   }
 
   return (
     <div>
       <h1 className="page-title">Transaction history</h1>
 
-      {/* User selector */}
       <div className="card">
-        <h2>View history for</h2>
-        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-          {['user_001', 'user_002', 'user_003'].map(u => (
-            <button
-              key={u}
-              onClick={() => { setUserId(u); setOffset(0) }}
-              className="btn"
-              style={{
-                background: userId === u ? '#7c85f5' : '#2d3148',
-                color: 'white',
-                padding: '0.4rem 0.9rem',
-                fontSize: '0.85rem',
-              }}
-            >
-              {u}
-            </button>
-          ))}
+        <h2>Viewing history for</h2>
+        <div className="chip-group">
+          <div className="chip-btn chip-btn-active">{user.user_id}</div>
         </div>
       </div>
 
@@ -59,20 +54,20 @@ export default function History() {
         {transactions.length === 0 ? (
           <div className="empty">No transactions found</div>
         ) : (
-          transactions.map(tx => (
+          transactions.map((tx) => (
             <div key={tx.id} className="tx-item">
               <div className="tx-info">
                 <span className="tx-type">
-                  #{tx.id} — {tx.transaction_type}
-                  {tx.asset_symbol ? ` · ${tx.asset_symbol}` : ''}
-                  {tx.recipient_user_id ? ` → ${tx.recipient_user_id}` : ''}
+                  #{tx.id} - {tx.transaction_type}
+                  {tx.asset_symbol ? ` - ${tx.asset_symbol}` : ''}
+                  {tx.recipient_user_id ? ` -> ${tx.recipient_user_id}` : ''}
                 </span>
                 <span className="tx-meta">{formatDate(tx.created_at)}</span>
                 {tx.failure_reason && (
-                  <span className="tx-meta" style={{ color: '#f56565' }}>{tx.failure_reason}</span>
+                  <span className="tx-meta tx-error">{tx.failure_reason}</span>
                 )}
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.3rem' }}>
+              <div className="tx-side">
                 <span className={`badge badge-${tx.status}`}>{tx.status}</span>
                 <span className="tx-amount">${parseFloat(tx.amount).toFixed(2)}</span>
               </div>
@@ -80,22 +75,21 @@ export default function History() {
           ))
         )}
 
-        {/* Pagination */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1rem' }}>
+        <div className="pager-row">
           <button
             className="btn"
-            style={{ background: '#2d3148', color: 'white' }}
+            style={{ background: 'rgba(8, 24, 34, 0.95)', color: '#d4eaf5', border: '1px solid rgba(148, 163, 184, 0.25)' }}
             onClick={() => setOffset(Math.max(0, offset - LIMIT))}
             disabled={offset === 0}
           >
             Previous
           </button>
-          <span style={{ color: '#64748b', fontSize: '0.85rem', alignSelf: 'center' }}>
-            Showing {offset + 1}–{offset + transactions.length}
+          <span className="pager-text">
+            Showing {offset + 1}-{offset + transactions.length}
           </span>
           <button
             className="btn"
-            style={{ background: '#2d3148', color: 'white' }}
+            style={{ background: 'rgba(8, 24, 34, 0.95)', color: '#d4eaf5', border: '1px solid rgba(148, 163, 184, 0.25)' }}
             onClick={() => setOffset(offset + LIMIT)}
             disabled={transactions.length < LIMIT}
           >

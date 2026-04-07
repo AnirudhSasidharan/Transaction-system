@@ -1,8 +1,10 @@
-import { useState, useEffect, useRef } from 'react'
-import { getWallet, createWallet, topUpWallet, connectWebSocket } from '../api'
+import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { connectWebSocket, getMyTransactionHistory, getMyWallet, topUpMyWallet } from '../api'
+import { useAuth } from '../context/useAuth'
 
 export default function Dashboard() {
-  const [userId, setUserId] = useState('user_001')
+  const { user } = useAuth()
   const [wallet, setWallet] = useState(null)
   const [error, setError] = useState('')
   const [topUpAmount, setTopUpAmount] = useState('')
@@ -10,22 +12,48 @@ export default function Dashboard() {
   const [connected, setConnected] = useState(false)
   const wsRef = useRef(null)
 
-  // Load wallet on mount or user change
-  useEffect(() => {
-    loadWallet()
-  }, [userId])
+  async function loadWallet() {
+    try {
+      const res = await getMyWallet()
+      setWallet(res.data)
+      setError('')
+    } catch {
+      setWallet(null)
+      setError('Could not load wallet')
+    }
+  }
 
-  // Connect WebSocket when userId changes
+  async function loadRecentTransactions() {
+    try {
+      const res = await getMyTransactionHistory(10, 0)
+      const recent = res.data.map((tx) => ({
+        transaction_id: tx.id,
+        status: tx.status,
+        new_balance: null,
+        failure_reason: tx.failure_reason,
+      }))
+      setLiveUpdates(recent)
+    } catch {
+      setLiveUpdates([])
+    }
+  }
+
   useEffect(() => {
+    if (!user?.user_id) return
+    loadWallet()
+    loadRecentTransactions()
+  }, [user?.user_id])
+
+  useEffect(() => {
+    if (!user?.user_id) return
     if (wsRef.current) wsRef.current.close()
 
-    const ws = connectWebSocket(userId, (data) => {
-      // Add update to live feed
-      setLiveUpdates(prev => [data, ...prev].slice(0, 10))
+    const ws = connectWebSocket(user.user_id, (data) => {
+      if (!data?.transaction_id || !data?.status) return
+      setLiveUpdates((prev) => [data, ...prev].slice(0, 10))
 
-      // If transaction succeeded, refresh balance
       if (data.status === 'success' && data.new_balance) {
-        setWallet(prev => prev ? { ...prev, balance: data.new_balance } : prev)
+        setWallet((prev) => (prev ? { ...prev, balance: data.new_balance } : prev))
       }
     })
 
@@ -34,33 +62,12 @@ export default function Dashboard() {
     wsRef.current = ws
 
     return () => ws.close()
-  }, [userId])
+  }, [user?.user_id])
 
-  const loadWallet = async () => {
-    try {
-      const res = await getWallet(userId)
-      setWallet(res.data)
-      setError('')
-    } catch {
-      setWallet(null)
-      setError(`No wallet found for "${userId}"`)
-    }
-  }
-
-  const handleCreateWallet = async () => {
-    try {
-      const res = await createWallet(userId, 1000)
-      setWallet(res.data)
-      setError('')
-    } catch (e) {
-      setError(e.response?.data?.detail || 'Failed to create wallet')
-    }
-  }
-
-  const handleTopUp = async () => {
+  async function handleTopUp() {
     if (!topUpAmount) return
     try {
-      const res = await topUpWallet(userId, parseFloat(topUpAmount))
+      const res = await topUpMyWallet(parseFloat(topUpAmount))
       setWallet(res.data)
       setTopUpAmount('')
     } catch (e) {
@@ -68,46 +75,33 @@ export default function Dashboard() {
     }
   }
 
+  if (!user) {
+    return (
+      <div>
+        <h1 className="page-title">Dashboard</h1>
+        <div className="card">
+          <div className="empty">
+            Please <Link to="/auth">login</Link> to view your wallet and live transactions.
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div>
       <h1 className="page-title">Dashboard</h1>
 
-      {/* User selector */}
       <div className="card">
         <h2>Active user</h2>
-        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-          {['user_001', 'user_002', 'user_003'].map(u => (
-            <button
-              key={u}
-              onClick={() => setUserId(u)}
-              className="btn"
-              style={{
-                background: userId === u ? '#7c85f5' : '#2d3148',
-                color: 'white',
-                padding: '0.4rem 0.9rem',
-                fontSize: '0.85rem',
-              }}
-            >
-              {u}
-            </button>
-          ))}
+        <div className="chip-group">
+          <div className="chip-btn chip-btn-active">{user.user_id}</div>
         </div>
       </div>
 
-      {error && (
-        <div className="alert alert-error">
-          {error}
-          <button
-            onClick={handleCreateWallet}
-            style={{ marginLeft: '1rem', textDecoration: 'underline', background: 'none', border: 'none', color: 'inherit', cursor: 'pointer' }}
-          >
-            Create wallet
-          </button>
-        </div>
-      )}
+      {error && <div className="alert alert-error">{error}</div>}
 
       <div className="grid-2">
-        {/* Wallet balance */}
         <div className="card">
           <h2>Balance</h2>
           {wallet ? (
@@ -117,55 +111,65 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* WebSocket status */}
         <div className="card">
           <h2>
             <span className="live-dot" style={{ background: connected ? '#4caf76' : '#f56565' }}></span>
             {connected ? 'Live updates connected' : 'Disconnected'}
           </h2>
           <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.3rem' }}>
-            Listening on ws://localhost:8000/api/v1/ws/{userId}
+            ws://localhost:8000/api/v1/ws/{user.user_id}
           </div>
         </div>
       </div>
 
-      {/* Top up */}
       {wallet && (
         <div className="card">
           <h2>Top up wallet</h2>
-          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+          <div className="inline-actions">
             <input
               type="number"
               placeholder="Amount"
               value={topUpAmount}
-              onChange={e => setTopUpAmount(e.target.value)}
-              style={{ flex: 1, padding: '0.6rem', background: '#0f1117', border: '1px solid #2d3148', borderRadius: '8px', color: '#e2e8f0' }}
+              onChange={(e) => setTopUpAmount(e.target.value)}
+              className="inline-input"
             />
             <button className="btn btn-primary" onClick={handleTopUp}>Add funds</button>
           </div>
         </div>
       )}
 
-      {/* Live feed */}
       <div className="card">
         <h2>
           <span className="live-dot"></span>
           Live transaction updates
         </h2>
         {liveUpdates.length === 0 ? (
-          <div className="empty">No updates yet — create a transaction to see live updates here</div>
+          <div className="empty">No updates yet - create a transaction to see live updates here</div>
         ) : (
-          liveUpdates.map((update, i) => (
-            <div key={i} className="tx-item">
-              <div className="tx-info">
-                <span className="tx-type">Transaction #{update.transaction_id}</span>
-                <span className="tx-meta">
-                  {update.failure_reason || (update.new_balance ? `New balance: $${parseFloat(update.new_balance).toFixed(2)}` : '')}
-                </span>
+          liveUpdates.map((update, i) => {
+            const txId = update.transaction_id ?? update.id ?? '?'
+            const status = update.status ?? 'unknown'
+            const newBal = update.new_balance
+            const reason = update.failure_reason
+
+            return (
+              <div key={i} className="tx-item">
+                <div className="tx-info">
+                  <span className="tx-type">Transaction #{txId}</span>
+                  <span className="tx-meta">
+                    {reason
+                      ? `Failed: ${reason}`
+                      : newBal
+                        ? `New balance: $${parseFloat(newBal).toFixed(2)}`
+                        : status === 'processing'
+                          ? 'Processing...'
+                          : ''}
+                  </span>
+                </div>
+                <span className={`badge badge-${status}`}>{status}</span>
               </div>
-              <span className={`badge badge-${update.status}`}>{update.status}</span>
-            </div>
-          ))
+            )
+          })
         )}
       </div>
     </div>

@@ -39,7 +39,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import wallets, transactions, websocket
+from app.api import auth, wallets, transactions, websocket, portfolio
 from app.services.websocket_manager import redis_listener
 from app.workers.transaction_worker import worker_loop
 
@@ -108,6 +108,8 @@ API_PREFIX = "/api/v1"
 app.include_router(wallets.router,      prefix=API_PREFIX)
 app.include_router(transactions.router, prefix=API_PREFIX)
 app.include_router(websocket.router,    prefix=API_PREFIX)
+app.include_router(auth.router,         prefix=API_PREFIX)
+app.include_router(portfolio.router,    prefix=API_PREFIX)
 
 
 # ── Health check ──────────────────────────────────────────────────────────────

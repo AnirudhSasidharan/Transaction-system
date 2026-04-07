@@ -56,6 +56,7 @@ def get_redis() -> aioredis.Redis:
 
 # ── Queue helpers ─────────────────────────────────────────────────────────────
 TRANSACTION_QUEUE = "transactions:queue"  # the Redis list key
+TRANSACTION_DLQ = "transactions:dead_letter"
 
 
 async def enqueue_transaction(transaction_id: str) -> None:
@@ -65,6 +66,12 @@ async def enqueue_transaction(transaction_id: str) -> None:
     """
     r = get_redis()
     await r.lpush(TRANSACTION_QUEUE, transaction_id)
+
+
+async def dead_letter_transaction(transaction_id: str, reason: str) -> None:
+    r = get_redis()
+    payload = json.dumps({"transaction_id": transaction_id, "reason": reason})
+    await r.lpush(TRANSACTION_DLQ, payload)
 
 
 # ── Pub/Sub helpers ───────────────────────────────────────────────────────────

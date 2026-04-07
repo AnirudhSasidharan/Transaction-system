@@ -1,1 +1,45 @@
-/* App specific styles — global styles are in index.css */
+.bg-orb {
+  position: fixed;
+  width: 28rem;
+  height: 28rem;
+  border-radius: 999px;
+  filter: blur(60px);
+  opacity: 0.35;
+  z-index: -2;
+  animation: floatOrb 16s ease-in-out infinite;
+}
+
+.orb-a {
+  top: -10rem;
+  left: -7rem;
+  background: radial-gradient(circle at 30% 30%, #14b8a6, #0f766e 70%);
+}
+
+.orb-b {
+  right: -8rem;
+  bottom: -10rem;
+  background: radial-gradient(circle at 60% 40%, #f97316, #c2410c 70%);
+  animation-delay: -8s;
+}
+
+.bg-grid {
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(148, 163, 184, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.06) 1px, transparent 1px);
+  background-size: 34px 34px;
+  mask-image: radial-gradient(circle at 50% 40%, black 40%, transparent 95%);
+  z-index: -1;
+  pointer-events: none;
+}
+
+@keyframes floatOrb {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(26px) scale(1.05);
+  }
+}

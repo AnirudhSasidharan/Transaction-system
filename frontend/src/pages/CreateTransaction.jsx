@@ -1,9 +1,16 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { createTransaction } from '../api'
+import { useAuth } from '../context/useAuth'
+
+function newIdempotencyKey() {
+  if (crypto?.randomUUID) return crypto.randomUUID()
+  return `idmp-${Date.now()}-${Math.random().toString(36).slice(2)}`
+}
 
 export default function CreateTransaction() {
+  const { user } = useAuth()
   const [form, setForm] = useState({
-    user_id: 'user_001',
     transaction_type: 'buy',
     amount: '',
     asset_symbol: '',
@@ -24,18 +31,17 @@ export default function CreateTransaction() {
 
     try {
       const payload = {
-        user_id: form.user_id,
         transaction_type: form.transaction_type,
         amount: parseFloat(form.amount),
       }
 
-      if (form.transaction_type === 'buy') {
+      if (form.transaction_type === 'buy' || form.transaction_type === 'sell') {
         payload.asset_symbol = form.asset_symbol
       } else {
         payload.recipient_user_id = form.recipient_user_id
       }
 
-      const res = await createTransaction(payload)
+      const res = await createTransaction(payload, newIdempotencyKey())
       setResult(res.data)
     } catch (e) {
       setError(e.response?.data?.detail || 'Transaction failed')
@@ -44,24 +50,32 @@ export default function CreateTransaction() {
     }
   }
 
+  if (!user) {
+    return (
+      <div>
+        <h1 className="page-title">Send / Buy / Sell</h1>
+        <div className="card">
+          <div className="empty">Please <Link to="/auth">login</Link> before creating transactions.</div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div>
-      <h1 className="page-title">Send / Buy</h1>
+      <h1 className="page-title">Send / Buy / Sell</h1>
 
       <div className="card">
         <div className="form-group">
           <label>From user</label>
-          <select name="user_id" value={form.user_id} onChange={handleChange}>
-            <option>user_001</option>
-            <option>user_002</option>
-            <option>user_003</option>
-          </select>
+          <input value={user.user_id} disabled />
         </div>
 
         <div className="form-group">
           <label>Transaction type</label>
           <select name="transaction_type" value={form.transaction_type} onChange={handleChange}>
             <option value="buy">Buy asset</option>
+            <option value="sell">Sell asset</option>
             <option value="send">Send money</option>
           </select>
         </div>
@@ -77,7 +91,7 @@ export default function CreateTransaction() {
           />
         </div>
 
-        {form.transaction_type === 'buy' && (
+        {(form.transaction_type === 'buy' || form.transaction_type === 'sell') && (
           <div className="form-group">
             <label>Asset symbol</label>
             <input
@@ -93,20 +107,17 @@ export default function CreateTransaction() {
         {form.transaction_type === 'send' && (
           <div className="form-group">
             <label>Recipient user ID</label>
-            <select name="recipient_user_id" value={form.recipient_user_id} onChange={handleChange}>
-              <option value="">Select recipient</option>
-              <option value="user_001">user_001</option>
-              <option value="user_002">user_002</option>
-              <option value="user_003">user_003</option>
-            </select>
+            <input
+              type="text"
+              name="recipient_user_id"
+              placeholder="e.g. user_002"
+              value={form.recipient_user_id}
+              onChange={handleChange}
+            />
           </div>
         )}
 
-        <button
-          className="btn btn-primary"
-          onClick={handleSubmit}
-          disabled={loading}
-        >
+        <button className="btn btn-primary" onClick={handleSubmit} disabled={loading}>
           {loading ? 'Submitting...' : 'Submit transaction'}
         </button>
       </div>
@@ -116,13 +127,13 @@ export default function CreateTransaction() {
       {result && (
         <div className="card">
           <div className="alert alert-info" style={{ marginBottom: '1rem' }}>
-            Transaction submitted — check Dashboard for live status updates
+            Transaction submitted - check Dashboard for live status updates
           </div>
           <div className="tx-item">
             <div className="tx-info">
-              <span className="tx-type">#{result.id} — {result.transaction_type}</span>
+              <span className="tx-type">#{result.id} - {result.transaction_type}</span>
               <span className="tx-meta">
-                {result.asset_symbol || result.recipient_user_id} · ${parseFloat(result.amount).toFixed(2)}
+                {result.asset_symbol || result.recipient_user_id || ''} - ${parseFloat(result.amount).toFixed(2)}
               </span>
             </div>
             <span className={`badge badge-${result.status}`}>{result.status}</span>

@@ -31,8 +31,11 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from alembic import context
 
 # Import ALL models here so Alembic can detect them when autogenerating
-from app.models.wallet import Wallet           # noqa: F401
+from app.models.wallet import Wallet  # noqa: F401
 from app.models.transaction import Transaction  # noqa: F401
+from app.models.user import User  # noqa: F401
+from app.models.holding import Holding  # noqa: F401
+from app.models.ledger_entry import LedgerEntry  # noqa: F401
 from app.core.database import Base
 from app.core.config import settings
 

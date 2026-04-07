@@ -1,7 +1,3 @@
-// src/api.js
-// All calls to the backend API in one place.
-// Every component imports from here — never fetch() directly in a component.
-
 import axios from 'axios'
 
 const BASE_URL = 'http://localhost:8000/api/v1'
@@ -12,29 +8,63 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 })
 
-// ── Wallets ───────────────────────────────────────────────────────────────────
+export const getApiErrorMessage = (error, fallback = 'Request failed') => {
+  const detail = error?.response?.data?.detail
+  if (typeof detail === 'string') return detail
+  if (Array.isArray(detail)) {
+    return detail.map((item) => item?.msg || JSON.stringify(item)).join('; ')
+  }
+  if (detail && typeof detail === 'object') {
+    return detail.message || JSON.stringify(detail)
+  }
+  return fallback
+}
+
+export const getToken = () => localStorage.getItem('access_token')
+export const setToken = (token) => localStorage.setItem('access_token', token)
+export const clearToken = () => localStorage.removeItem('access_token')
+
+api.interceptors.request.use((config) => {
+  const token = getToken()
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
+
+// Auth
+export const registerUser = (payload) => api.post('/auth/register', payload)
+export const loginUser = (payload) => api.post('/auth/login', payload)
+export const getMe = () => api.get('/auth/me')
+
+// Wallets
 export const createWallet = (userId, initialBalance = 1000) =>
   api.post('/wallets/', { user_id: userId, initial_balance: initialBalance })
 
-export const getWallet = (userId) =>
-  api.get(`/wallets/${userId}`)
+export const getWallet = (userId) => api.get(`/wallets/${userId}`)
+export const getMyWallet = () => api.get('/wallets/me')
 
-export const topUpWallet = (userId, amount) =>
-  api.post(`/wallets/${userId}/topup`, { amount })
+export const topUpWallet = (userId, amount) => api.post(`/wallets/${userId}/topup`, { amount })
+export const topUpMyWallet = (amount) => api.post('/wallets/me/topup', { amount })
 
-// ── Transactions ──────────────────────────────────────────────────────────────
-export const createTransaction = (data) =>
-  api.post('/transactions/', data)
+// Transactions
+export const createTransaction = (data, idempotencyKey) =>
+  api.post('/transactions/', data, {
+    headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined,
+  })
 
-export const getTransaction = (transactionId) =>
-  api.get(`/transactions/${transactionId}`)
+export const getTransaction = (transactionId) => api.get(`/transactions/${transactionId}`)
 
 export const getTransactionHistory = (userId, limit = 20, offset = 0) =>
   api.get(`/transactions/history/${userId}?limit=${limit}&offset=${offset}`)
 
-// ── WebSocket ─────────────────────────────────────────────────────────────────
-// Returns a WebSocket connection for a user
-// Usage: const ws = connectWebSocket('user_001', (data) => console.log(data))
+export const getMyTransactionHistory = (limit = 20, offset = 0) =>
+  api.get(`/transactions/history/me?limit=${limit}&offset=${offset}`)
+
+// Portfolio
+export const getMyPortfolio = () => api.get('/portfolio/me')
+
+// WebSocket
 export const connectWebSocket = (userId, onMessage) => {
   const ws = new WebSocket(`${WS_URL}/ws/${userId}`)
 
@@ -42,7 +72,7 @@ export const connectWebSocket = (userId, onMessage) => {
 
   ws.onmessage = (event) => {
     const data = JSON.parse(event.data)
-    if (data.type === 'ping') return // ignore keepalive pings
+    if (data.type === 'ping' || data.type === 'connected') return
     onMessage(data)
   }
 

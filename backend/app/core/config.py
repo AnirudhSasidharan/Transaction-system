@@ -28,10 +28,13 @@ class Settings(BaseSettings):
     # ── App ───────────────────────────────────────────────────────────────────
     APP_ENV: str = "development"
     SECRET_KEY: str = "change-me-in-production"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24
 
     # ── Business rules ────────────────────────────────────────────────────────
     MAX_TRANSACTION_AMOUNT: float = 1_000_000.00
     WORKER_POLL_INTERVAL: int = 1  # seconds between queue checks
+    DEFAULT_MAX_ATTEMPTS: int = 3
+    TRANSACTION_FEE_RATE: float = 0.0025
 
     # Tell pydantic-settings to read a .env file automatically
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
